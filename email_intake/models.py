@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, String, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -11,6 +11,10 @@ class Address(Base):
     id = Column(Integer, primary_key=True)
     uri = Column(String)
 
+    mailboxes = relationship('Mailbox', back_populates='owner')
+    sent_messages = relationship('Message', back_populates='sender')
+    received_messages = relationship('Message', back_populates='recipients')
+
 
 class Mailbox(Base):
     __tablename__ = 'mailbox'
@@ -19,6 +23,7 @@ class Mailbox(Base):
     owner_id = Column(Integer, ForeignKey('address.id'))
 
     owner = relationship('Address', back_populates='mailboxes')
+    messages = relationship('Message', back_populates='mailbox')
 
 
 class Message(Base):
@@ -30,16 +35,29 @@ class Message(Base):
 
     mailbox = relationship('Mailbox', back_populates='messages')
     sender = relationship('Address', back_populates='sent_messages')
-    recipients = relationship('Address', back_populates='received_messages', secondary="message_recipients")
+    recipients = relationship('Address', back_populates='received_messages', secondary="message_recipient")
+    header_values = relationship('MessageHeaderValue', back_populates='message')
 
 
 class MessageHeader(Base):
     __tablename__ = 'message_header'
 
     id = Column(Integer, primary_key=True)
-    message_id = Column(Integer, ForeignKey('message.id'))
+    name = Column(String)
 
-    message = relationship('Message', back_populates='headers')
+    values = relationship('MessageHeaderValue', back_populates='header')
+
+
+class MessageHeaderValue(Base):
+    __tablename__ = 'message_header_value'
+
+    id = Column(Integer, primary_key=True)
+    message_id = Column(Integer, ForeignKey('message.id'))
+    name_id = Column(Integer, ForeignKey('message_header.id'))
+    value = Column(Text)
+
+    header = relationship('MessageHeader', back_populates='values')
+    message = relationship('Message', back_populates='header_values')
 
 
 message_recipients = Table(

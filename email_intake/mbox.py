@@ -14,6 +14,10 @@ def group_lines_as_headers(lines):
 def header_as_tuple(headers):
     line = next(headers)
     name, line = line.split(":", 1)
+    # Normalize headers to lowercase. Headers are case insensitive.
+    # Header spec: https://tools.ietf.org/html/rfc5322#section-2.2
+    # ABNF spec: https://tools.ietf.org/html/rfc5234#section-2.3
+    name = name.lower()
     return (name, chain([line.lstrip()], headers))
 
 
