@@ -35,7 +35,11 @@ class Message(Base):
 
     mailbox = relationship('Mailbox', back_populates='messages')
     sender = relationship('Address', back_populates='sent_messages')
-    recipients = relationship('Address', back_populates='received_messages', secondary="message_recipient")
+    recipients = relationship(
+        'Address',
+        back_populates='received_messages',
+        secondary="message_recipient",
+    )
     header_values = relationship('MessageHeaderValue', back_populates='message')
     payloads = relationship('MessagePayload', back_populates='message')
 

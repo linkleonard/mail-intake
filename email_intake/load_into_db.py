@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from mailbox import mbox
-from email.message import EmailMessage
 from email_intake.config import env
 from email_intake.models import (
     Message,
