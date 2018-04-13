@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from email_intake import mbox
+from mailbox import mbox
+from email.message import EmailMessage
 from email_intake.config import env
 from email_intake.models import (
     Message,
@@ -7,6 +8,7 @@ from email_intake.models import (
     Address,
     MessageHeader,
     MessageHeaderValue,
+    MessagePayload,
 )
 import logging
 import os
@@ -20,10 +22,11 @@ folder = "/Users/leonard/Documents/output/"
 
 
 def configure_logger():
+    log_level = logging.DEBUG
     handler = logging.StreamHandler()
-    handler.setLevel(logging.INFO)
+    handler.setLevel(log_level)
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
 
     formatter = logging.Formatter("%(asctime)s %(message)s")
     handler.setFormatter(formatter)
@@ -43,13 +46,15 @@ def main():
 
     for fname in os.listdir(folder):
         logger.debug("Parsing {}".format(fname))
-        with open(folder + fname) as fp:
-            # Consume the From_ line
-            # See: http://www.qmail.org/man/man5/mbox.html
-            from_line = next(fp)
-            logger.info(from_line)
+        file_path = folder + fname
+        file_mbox = mbox(file_path)
 
-            sender = Address()
+        message_count = 0
+        # There should be messages in each file
+        for message_count, email_message in enumerate(file_mbox, 1):
+            sender = Address(
+                uri=email_message['To']
+            )
             session.add(sender)
 
             message = Message(
@@ -59,16 +64,27 @@ def main():
 
             session.add(message)
 
-            header_lines = mbox.collect_headers(fp)
-            grouped_header_lines = mbox.group_lines_as_headers(header_lines)
-            for header_lines in grouped_header_lines:
-                (name, value_iterator) = mbox.header_as_tuple(iter(header_lines))
+            for name, value in email_message.items():
                 header = MessageHeader(name=name)
                 session.add(header)
 
-                value = '\n'.join(value_iterator)
                 header_value = MessageHeaderValue(header=header, value=value)
                 session.add(header_value)
+
+
+            message_payload = email_message.get_payload()
+            for email_payload in message_payload:
+                if isinstance(email_payload, str):
+                    content = email_payload
+                else:
+                    content = email_payload.get_payload()
+
+                message_payload = MessagePayload(
+                    body=content,
+                    message=message,
+                )
+                session.add(message_payload)
+        logger.debug('Parsed {} messages'.format(message_count))
 
     logger.info("Finished parsing input files. Committing...")
     session.commit()

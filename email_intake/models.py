@@ -37,6 +37,17 @@ class Message(Base):
     sender = relationship('Address', back_populates='sent_messages')
     recipients = relationship('Address', back_populates='received_messages', secondary="message_recipient")
     header_values = relationship('MessageHeaderValue', back_populates='message')
+    payloads = relationship('MessagePayload', back_populates='message')
+
+
+class MessagePayload(Base):
+    __tablename__ = 'message_payload'
+
+    id = Column(Integer, primary_key=True)
+    message_id = Column(Integer, ForeignKey('message.id'))
+    body = Column(Text)
+
+    message = relationship('Message', back_populates='payloads')
 
 
 class MessageHeader(Base):
